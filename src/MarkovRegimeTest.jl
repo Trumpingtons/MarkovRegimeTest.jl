@@ -11,14 +11,15 @@ export rhogrid, nullfit, chptest, chpbootstrap, asymptoticvalues, empiricalvalue
 export growth
 
 """
-    growth(gnp)
+    growth(table, column = :gnp)
 
-The quarterly growth rates of US real GNP in per cent, 100 times the first difference of the log of the
-levels, from a Tables.jl table with a column `gnp` of quarterly levels in time order (the datasets
-`gnp82`, 1951Q1 to 1984Q4, and `gnpc96`, 1951Q1 to 2010Q4, of PollisDatasets): a vector one shorter
-than the table, from its second quarter on.
+The growth rates in per cent, 100 times the first difference of the log, of the levels in `column` of a
+Tables.jl table, in time order: a vector one shorter than the table. With the default column, the
+quarterly growth of US real GNP from the datasets `gnp82` (1951Q1 to 1984Q4) and `gnpc96` (1951Q1 to
+2010Q4) of PollisDatasets; with a column of prices, returns in per cent. Every function of Hansen's test
+takes such a table and its `column`, or the vector of growth rates or returns itself.
 """
-growth(gnp) = 100 .* diff(log.(Float64.(Tables.getcolumn(Tables.columns(gnp), :gnp))))
+growth(table, column = :gnp) = 100 .* diff(log.(Float64.(Tables.getcolumn(Tables.columns(table), Symbol(column)))))
 
 include("hansen.jl")
 include("chp.jl")

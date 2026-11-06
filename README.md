@@ -14,14 +14,19 @@ Articles:
 ```julia
 using MarkovRegimeTest, CSV, Downloads, Tables
 data = "https://raw.githubusercontent.com/Trumpingtons/PollisDatasets.jl/ade6f348c24833c8644074acbde72a51aa495adb/data"
-read_gnp(name) = Tables.columntable(CSV.File(take!(Downloads.download("$data/$name.csv", IOBuffer()))))
-gnp82, gnpc96 = read_gnp("gnp82"), read_gnp("gnpc96")
-hamilton_estimates(gnp82)                          # Hansen, Table II: Hamilton's Markov switching model
-standardized_lr(gnp82, :hamilton; grids = 1:3)     # Hansen's erratum, Table III: LR* on Grids 1 to 3
-lr_pvalues(gnp82, :hamilton; grids = 1:3)          # and its p-values, Bartlett bandwidths M = 0 to 4
-x = growth(gnpc96)                                 # growth rates, 1951Q2 to 2010Q4
-chptest(x)                                         # Carrasco, Hu and Ploberger: supTS and expTS, switch in mean
-chpbootstrap(x; switching = [:mean, :variance])    # switch in mean and variance, with bootstrap p-values
+read_csv(name) = Tables.columntable(CSV.File(take!(Downloads.download("$data/$name.csv", IOBuffer()))))
+
+# Any series: returns or growth rates as a vector, or a table and the column of its levels
+prices = read_csv("sp500")
+x = growth(prices, :close)[end-499:end]                      # the last 500 daily returns, in per cent
+standardized_lr(x, :intercept; p = 1, grids = [0.5:0.1:0.9]) # Hansen's LR*, one regime against two
+lr_pvalues(x, :intercept; p = 1, grids = [0.5:0.1:0.9])      # and its p-values, M = 0 to 4
+chpbootstrap(x; p = 1, switching = [:mean, :variance])       # Carrasco, Hu and Ploberger, with p-values
+
+# The articles' tables, on US real GNP
+gnp82, gnpc96 = read_csv("gnp82"), read_csv("gnpc96")
+standardized_lr(gnp82, :hamilton; grids = 1:3, mud = 0.1:0.1:2.0)  # Hansen's erratum, Table III
+table3mean(gnp82, gnpc96)                                          # Carrasco, Hu and Ploberger, Table III
 ```
 
 ## Vignette

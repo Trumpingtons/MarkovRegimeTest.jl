@@ -72,27 +72,27 @@ end
 	end
 	@testset "Hansen (1996), erratum, Table X, p. 197: standardized LR statistics" begin
 		gnp82 = input("https://raw.githubusercontent.com/Trumpingtons/PollisDatasets.jl/ade6f348c24833c8644074acbde72a51aa495adb/data/gnp82.csv")
-		check(vcat(standardized_lr(gnp82, :modelA; grids = 1:4), standardized_lr(gnp82, :modelB; grids = 1:4)), "hansen_erratum10", 0, [("Model B, Grid 2", "LR*")])
+		check(vcat(standardized_lr(gnp82, :modelA; grids = 1:4, mud = 0.2:0.2:2.0), standardized_lr(gnp82, :modelB; grids = 1:4, mud = 0.2:0.2:2.0)), "hansen_erratum10", 0, [("Model B, Grid 2", "LR*")])
 	end
 	@testset "Hansen (1996), erratum, Table X, p. 197: p-values" begin
 		gnp82 = input("https://raw.githubusercontent.com/Trumpingtons/PollisDatasets.jl/ade6f348c24833c8644074acbde72a51aa495adb/data/gnp82.csv")
-		check(vcat(lr_pvalues(gnp82, :modelA; grids = 1:4), lr_pvalues(gnp82, :modelB; grids = 1:4)), "hansen_erratum10pvalues", 3)
+		check(vcat(lr_pvalues(gnp82, :modelA; grids = 1:4, mud = 0.2:0.2:2.0), lr_pvalues(gnp82, :modelB; grids = 1:4, mud = 0.2:0.2:2.0)), "hansen_erratum10pvalues", 3)
 	end
 	@testset "Hansen (1996), erratum, Table III, p. 196: standardized LR statistics" begin
 		gnp82 = input("https://raw.githubusercontent.com/Trumpingtons/PollisDatasets.jl/ade6f348c24833c8644074acbde72a51aa495adb/data/gnp82.csv")
-		check(standardized_lr(gnp82, :hamilton; grids = 1:3), "hansen_erratum3", 0)
+		check(standardized_lr(gnp82, :hamilton; grids = 1:3, mud = 0.1:0.1:2.0), "hansen_erratum3", 0)
 	end
 	@testset "Hansen (1996), erratum, Table III, p. 196: p-values" begin
 		gnp82 = input("https://raw.githubusercontent.com/Trumpingtons/PollisDatasets.jl/ade6f348c24833c8644074acbde72a51aa495adb/data/gnp82.csv")
-		check(lr_pvalues(gnp82, :hamilton; grids = 1:3), "hansen_erratum3pvalues", 3, [("Grid 1", "M = 3")])
+		check(lr_pvalues(gnp82, :hamilton; grids = 1:3, mud = 0.1:0.1:2.0), "hansen_erratum3pvalues", 3, [("Grid 1", "M = 3")])
 	end
 	@testset "Hansen (1996), erratum, Table VI, p. 197: standardized LR statistics" begin
 		gnp82 = input("https://raw.githubusercontent.com/Trumpingtons/PollisDatasets.jl/ade6f348c24833c8644074acbde72a51aa495adb/data/gnp82.csv")
-		check(standardized_lr(gnp82, :intercept; grids = 1:5), "hansen_erratum6", 0)
+		check(standardized_lr(gnp82, :intercept; grids = 1:5, mud = 0.1:0.1:2.0), "hansen_erratum6", 0)
 	end
 	@testset "Hansen (1996), erratum, Table VI, p. 197: p-values" begin
 		gnp82 = input("https://raw.githubusercontent.com/Trumpingtons/PollisDatasets.jl/ade6f348c24833c8644074acbde72a51aa495adb/data/gnp82.csv")
-		check(lr_pvalues(gnp82, :intercept; grids = 1:5), "hansen_erratum6pvalues", 3, [("Grid 1", "M = 0"), ("Grid 1", "M = 2"), ("Grid 2", "M = 1"), ("Grid 2", "M = 2"), ("Grid 2", "M = 3"), ("Grid 2", "M = 4"), ("Grid 3", "M = 2"), ("Grid 3", "M = 3"), ("Grid 3", "M = 4"), ("Grid 4", "M = 3"), ("Grid 4", "M = 4")])
+		check(lr_pvalues(gnp82, :intercept; grids = 1:5, mud = 0.1:0.1:2.0), "hansen_erratum6pvalues", 3, [("Grid 1", "M = 0"), ("Grid 1", "M = 2"), ("Grid 2", "M = 1"), ("Grid 2", "M = 2"), ("Grid 2", "M = 3"), ("Grid 2", "M = 4"), ("Grid 3", "M = 2"), ("Grid 3", "M = 3"), ("Grid 3", "M = 4"), ("Grid 4", "M = 3"), ("Grid 4", "M = 4")])
 	end
 	@testset "Hansen (1992), Table I, p. S71" begin
 		gnp82 = input("https://raw.githubusercontent.com/Trumpingtons/PollisDatasets.jl/ade6f348c24833c8644074acbde72a51aa495adb/data/gnp82.csv")
@@ -100,26 +100,26 @@ end
 	end
 	@testset "Hansen (1992), Table II, p. S72" begin
 		gnp82 = input("https://raw.githubusercontent.com/Trumpingtons/PollisDatasets.jl/ade6f348c24833c8644074acbde72a51aa495adb/data/gnp82.csv")
-		check(hamilton_estimates(gnp82), "hansen_table2", 0, [("mu", "Standard error")])
+		check(hamilton_estimates(gnp82; mud = 0.1:0.1:2.0), "hansen_table2", 0, [("mu", "Standard error")])
 	end
 	@testset "Hansen (1992), Table III, p. S73: p-values (M = 0)" begin
 		gnp82 = input("https://raw.githubusercontent.com/Trumpingtons/PollisDatasets.jl/ade6f348c24833c8644074acbde72a51aa495adb/data/gnp82.csv")
-		check(lr_pvalues(gnp82, :hamilton; grids = 1:3, bandwidths = 0:0), "hansen_table3pvalues", 3, [("Grid 2", "p-value")])
+		check(lr_pvalues(gnp82, :hamilton; grids = 1:3, mud = 0.1:0.1:2.0, bandwidths = 0:0), "hansen_table3pvalues", 3, [("Grid 2", "p-value")])
 	end
 	@testset "Hansen (1992), Table V, p. S75" begin
 		gnp82 = input("https://raw.githubusercontent.com/Trumpingtons/PollisDatasets.jl/ade6f348c24833c8644074acbde72a51aa495adb/data/gnp82.csv")
-		check(intercept_estimates(gnp82), "hansen_table5", 0, [("p", "Estimate"), ("q", "Estimate")])
+		check(intercept_estimates(gnp82; mud = 0.1:0.1:2.0), "hansen_table5", 0, [("p", "Estimate"), ("q", "Estimate")])
 	end
 	@testset "Hansen (1992), Table VI, p. S76: p-values (M = 0)" begin
 		gnp82 = input("https://raw.githubusercontent.com/Trumpingtons/PollisDatasets.jl/ade6f348c24833c8644074acbde72a51aa495adb/data/gnp82.csv")
-		check(lr_pvalues(gnp82, :intercept; grids = 1:5, bandwidths = 0:0), "hansen_table6pvalues", 3, [("Grid 5", "p-value")])
+		check(lr_pvalues(gnp82, :intercept; grids = 1:5, mud = 0.1:0.1:2.0, bandwidths = 0:0), "hansen_table6pvalues", 3, [("Grid 5", "p-value")])
 	end
 	@testset "Hansen (1992), Table VIII, p. S78" begin
 		gnp82 = input("https://raw.githubusercontent.com/Trumpingtons/PollisDatasets.jl/ade6f348c24833c8644074acbde72a51aa495adb/data/gnp82.csv")
-		check(switching_estimates(gnp82), "hansen_table8", 0)
+		check(switching_estimates(gnp82; mud = 0.2:0.2:2.0), "hansen_table8", 0)
 	end
 	@testset "Hansen (1992), Table IX, p. S78" begin
 		gnp82 = input("https://raw.githubusercontent.com/Trumpingtons/PollisDatasets.jl/ade6f348c24833c8644074acbde72a51aa495adb/data/gnp82.csv")
-		check(wald_tests(gnp82), "hansen_table9", 0)
+		check(wald_tests(gnp82; mud = 0.2:0.2:2.0), "hansen_table9", 0)
 	end
 end

@@ -1,6 +1,6 @@
 name = "MarkovRegimeTest"
 uuid = "fe94bdff-efd6-4b9d-b0bf-6b11710f2734"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Antonio Saragga Seabra"]
 
 [deps]
