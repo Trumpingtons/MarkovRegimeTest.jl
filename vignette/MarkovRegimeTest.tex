@@ -8,14 +8,14 @@
 \begin{document}
 
 \nmhead{One regime against two}
-  {Tests of one regime against two\\ in Markov switching models of GNP}
-  {Hansen's standardized LR test and Carrasco, Hu and Ploberger's optimal tests, reproduced on US GNP.}
+  {Tests of one regime against two, and the\\ dating of the regimes, in Markov switching models of GNP}
+  {Hansen's standardized LR test, Carrasco, Hu and Ploberger's optimal tests and Hamilton's dating of the regimes, reproduced on US GNP.}
 
 \factsheet
-  {\nmcite{Han1992a}{Hansen (1992)}: Tables I--III, V, VI, VIII, IX; the \nmcite{Han1996a}{Hansen (1996a)} erratum: Tables III, VI, X. \nmcite{CHP2014a}{Carrasco, Hu and Ploberger (2014)}: Table III; supplement, Tables A-I to A-III. US real GNP, 1951--1984 and 1951--2010: \fn{gnp82} and \fn{gnpc96} of PollisDatasets, the files of the authors' replication programs as kept in MSTest.}
+  {\nmcite{Han1992a}{Hansen (1992)}: Tables I--III, V, VI, VIII, IX; the \nmcite{Han1996a}{Hansen (1996a)} erratum: Tables III, VI, X. \nmcite{CHP2014a}{Carrasco, Hu and Ploberger (2014)}: Table III; supplement, Tables A-I to A-III. \nmcite{Ham1989a}{Hamilton (1989)}: Tables I and II, and the filtered and smoothed probabilities printed by his program for the article. US real GNP, 1951--1984 and 1951--2010: \fn{gnp82} and \fn{gnpc96} of PollisDatasets, the files of the authors' replication programs as kept in MSTest.}
   {MarSwitching.jl estimates Markov switching models but has no test of the number of regimes; this package writes its own likelihoods and filters, and the derivatives of the null model.}
   {\package{MarkovRegimeTest}{https://github.com/Trumpingtons/MarkovRegimeTest.jl}}
-  {340 printed values: 307 tested and all pass, the exact ones to every digit, the simulated ones within 0.03. The other 33 are shown below, each with its reason. Against MSTest, every statistic agrees to the digits published.}
+  {1,303 printed values: 1,259 tested and all pass, the exact ones to every digit, the simulated ones within 0.03. The other 44 are shown below, each with its reason. Against MSTest, every statistic agrees to the digits published, and the smoothed probabilities where they are computed alike.}
 
 \nmsection{The problem}
 Does US GNP growth switch between two regimes, as \nmcite{Ham1989a}{Hamilton (1989)} proposed, or is a one-regime AR(4) enough? Under the null the difference between the regimes is zero, the transition probabilities p and q are not identified, and the scores of the switching parameters are identically zero. The likelihood ratio has no chi-squared limit. Hansen bounds its distribution on a grid of the parameters not identified; Carrasco, Hu and Ploberger build tests that need only the estimates under the null.
@@ -37,7 +37,7 @@ Under the null the AR(4) is fitted by least squares. For a direction $h$ of the 
 $\varepsilon_t$ the residual of $\mu_{2,t}$ on the scores. supTS is the largest $\tfrac12\max(\mathrm{TS},0)^2$, and expTS the mean of $\sqrt{2\pi}\,e^{(\mathrm{TS}-1)^2/2}\,\Phi(\mathrm{TS}-1)$, over $\rho=-0.7,\dots,0.7$ by 0.01. A switch in the mean has $h=(1,0,\dots)$; a switch in the mean and the variance, 100 random directions, drawn here with a fixed seed. The p-values come from 3,000 parametric bootstrap samples. The details the article leaves open follow the authors' GAUSS programs.
 
 \nmsub{The functions}
-Hansen: \fn{standardized\_lr(data, model)} and \fn{lr\_pvalues}, LR* and its p-values, for \fn{:hamilton} (the mean switches), \fn{:intercept}, \fn{:modelA} or \fn{:modelB} (the intercept and phi2 switch); \fn{ar\_estimates}, \fn{hamilton\_estimates}, \fn{intercept\_estimates} and \fn{switching\_estimates}, the estimates of Tables I, II, V and VIII; \fn{wald\_tests}, Table IX. Each takes a vector of growth rates or returns, or a table and the \fn{column} of its levels; the AR order \fn{p}; and the grids: \fn{mud}, the difference between the regimes, by default 0.1 to 2 standard deviations of the series, and \fn{grids} of p and q, Hansen's Grids 1 to 5 or any range of probabilities. The article's tables pass Hansen's own grid, \fn{mud = 0.1:0.1:2.0}. Carrasco, Hu and Ploberger: \fn{nullfit}, the AR(p) under the null; \fn{chptest(x; switching)}, supTS and expTS of any series, AR order and switching parameters; \fn{chpbootstrap}, with their p-values; \fn{asymptoticvalues} and \fn{empiricalvalues}, critical values; \fn{msfit}, the switching AR(4); \fn{table3mean} to \fn{tableA3}, the published tables. \fn{growth(table, column)} gives 100 times the first difference of the log of a column of levels.
+{\sloppy Hansen: \fn{standardized\_lr(data, model)} and \fn{lr\_pvalues}, LR* and its p-values, for \fn{:hamilton} (the mean switches), \fn{:intercept}, \fn{:modelA} or \fn{:modelB} (the intercept and phi2 switch); \fn{ar\_estimates}, \fn{hamilton\_estimates}, \fn{intercept\_estimates} and \fn{switching\_estimates}, the estimates of Tables I, II, V and VIII; \fn{wald\_tests}, Table IX. Each takes a vector of growth rates or returns, or a table and the \fn{column} of its levels; the AR order \fn{p}; and the grids: \fn{mud}, the difference between the regimes, by default 0.1 to 2 standard deviations of the series, and \fn{grids} of p and q, Hansen's Grids 1 to 5 or any range of probabilities. The article's tables pass Hansen's own grid, \fn{mud = 0.1:0.1:2.0}. Carrasco, Hu and Ploberger: \fn{nullfit}, the AR(p) under the null; \fn{chptest(x; switching)}, supTS and expTS of any series, AR order and switching parameters; \fn{chpbootstrap}, with their p-values; \fn{asymptoticvalues} and \fn{empiricalvalues}, critical values; \fn{msfit}, the switching AR(4); \fn{table3mean} to \fn{tableA3}, the published tables. Hamilton: \fn{filtered\_probabilities} and \fn{smoothed\_probabilities}, the probabilities of the two regimes at each period, A the regime of the higher mean, for \fn{:hamilton}, \fn{:intercept} or \fn{:meanvariance} (Hamilton's model with a switching variance, \fn{meanvariance\_estimates}); \fn{regime\_spells}, the spells A, B, A, \dots\ with their first and last periods, dated by any column of the data; \fn{turning\_points}, Table II. \fn{growth(table, column)} gives 100 times the first difference of the log of a column of levels.\par}
 
 \nmsection{What the tests show}
 \nmsub{All targets}
@@ -56,6 +56,10 @@ H, Erratum X & LR*, Models A and B, 7 of 8 to every digit; Model A & 3.50, 3.53,
 H, Erratum X & LR*, Model B, Grid 2 & 3.55 & 3.56 & \no\\
 H, p-values & 88, Tables III, VI (1992 and erratum) and X: 74 within 0.03 & & & \ok\\
 H, p-values & the other 14, in the table below & & & \no\\
+\end{valuetable}
+\vspace{4pt}
+\begin{valuetable}{@{}lXrrc@{}}
+\textbf{Source} & \textbf{Value} & \textbf{Published} & \textbf{Julia} & \\\midrule
 C, Table A-II & AR(4), both samples: 14 estimates and $T$, 10 of 12 SEs, to every digit; sigma, 2010 & 0.883 (0.056) & 0.883 (0.056) & \ok\\
 C, Table A-II & 1984 standard errors of mu; sigma & 0.112; 0.061 & 0.111; 0.064 & \no\\
 C, Table III & switch in mean, supTS, expTS: 1984; 2010 & 0.08, 0.66; 1.11, 1.00 & 0.08, 0.66; 1.11, 1.00 & \ok\\
@@ -67,10 +71,19 @@ C, Table A-I & six 99\% values; 95\%, supTS, $[-0.98,0.98]$, empirical & 3.81 \d
 C, Table A-III & switching AR(4): 10 estimates and $L$ to every digit; 6 SEs & 279.142 & 279.142 & \ok\\
 C, Table A-III & standard errors of mu, mu1, phi1, sigma & .172, .232, .083, .090 & .168, .226, .082, .089 & \no\\
 \end{valuetable}
-H: \nmcite{Han1992a}{Hansen (1992)} and its erratum; C: \nmcite{CHP2014a}{Carrasco, Hu and Ploberger (2014)} and its supplement. The rows marked \no\ are the 33 values not tested.
+\vspace{4pt}
+\begin{valuetable}{@{}lXrrc@{}}
+\textbf{Source} & \textbf{Value} & \textbf{Published} & \textbf{Julia} & \\\midrule
+M, Table I & 7 of 18: a1, sigma, phi2 to phi4; SEs of phi1, phi3 & 1.522, 0.7690 & 1.522, 0.7690 & \ok\\
+M, Table I & a0, p, q, phi1; 7 SEs, the furthest (p) & $-0.3577$, .9049, .7550, .014; .03740 & $-0.3588$, .9041, .7547, .013; .03774 & \no\\
+M, Table II & the seven recessions, first and last quarter, all to the quarter & 1953:III--1954:II \dots & 1953:III--1954:II \dots & \ok\\
+M, program & 655 filtered probabilities, 131 quarters, $s_t$ to $s_{t-4}$, all to every digit & 0.7767 \dots\ 0.9983 & 0.7767 \dots\ 0.9983 & \ok\\
+M, program & 262 full-sample smoothed probabilities, all to every digit & 0.9681 \dots\ 0.0723 & 0.9681 \dots\ 0.0723 & \ok\\
+\end{valuetable}
+H: \nmcite{Han1992a}{Hansen (1992)} and its erratum; C: \nmcite{CHP2014a}{Carrasco, Hu and Ploberger (2014)} and its supplement; M: \nmcite{Ham1989a}{Hamilton (1989)}, and the output of his GAUSS program for the article (\fn{EXAMPLE1.OUT} of \fn{Markov1.zip}, on his web page). The rows marked \no\ are the 44 values not tested.
 
 \nmsub{Where they differ}
-\emph{Exact values.} The tests allow none of them to be off; 10 are, each from an exact maximum. In Hansen's tables, by one in the last digit: the SE of mu in Table II is 0.46579; Table V's p = 0.91254 and q = 0.66821 (at Hansen's 0.912 and 0.669 the log likelihood is 0.00013 lower); Model B, Grid 2 gives 3.55558 from three different starts. Hansen's numerical optimizer and Hessian are the likely cause. In Carrasco, Hu and Ploberger's supplement, the estimates are exact but six standard errors are off by 1 to 6 in the third decimal: GAUSS's CML took numerical derivatives, and its 1984 sigma, 0.061, is the plain inverse Hessian (0.0607) rather than the QML sandwich of every other value.
+\emph{Exact values.} The tests allow none of them to be off; 10 are, each from an exact maximum. In Hansen's tables, by one in the last digit: the SE of mu in Table II is 0.46579; Table V's p = 0.91254 and q = 0.66821 (at Hansen's 0.912 and 0.669 the log likelihood is 0.00013 lower); Model B, Grid 2 gives 3.55558 from three different starts. Hansen's numerical optimizer and Hessian are the likely cause. In Carrasco, Hu and Ploberger's supplement, the estimates are exact but six standard errors are off by 1 to 6 in the third decimal: GAUSS's CML took numerical derivatives, and its 1984 sigma, 0.061, is the plain inverse Hessian (0.0607) rather than the QML sandwich of every other value. Hamilton's Table I is not at the maximum: its log likelihood is $-181.2638$, against $-181.2634$ at the estimates of Hansen's Table II, of Hamilton's own program (1991) and of this package. Four estimates differ in the last digit or more (a0 $-0.3577$ against $-0.3588$, p .9049 against .9041), and his standard errors, from the Hessian at his point, by up to 34 in the last digit; at the maximum, \fn{covariance = :hessian} gives his program's standard errors to its digits (a0 0.2645, p 0.0377).
 
 \emph{Simulated values.} The tests allow 0.03. Hansen's p-values come from 1,000 draws, about 0.015 of noise per run, and his two runs differ by up to 0.07 (VI, Grid 5: 0.32 and 0.39). The 14 off by more:
 \begin{valuetable}{@{}Xccccc@{}}
@@ -90,6 +103,21 @@ For Carrasco, Hu and Ploberger, expTS with a switch in the variance averages ove
 \nmsub{One sample choice}
 The constrained model of Hansen's Table VIII is an AR(2). Its published estimates and likelihood are reproduced only on the AR(2) sample, 1951:4--1984:4 ($n=133$); on the AR(4) sample the likelihood is $-174.893$, not $-176.990$. Footnote 9 suggests the reason: earlier versions of the paper used an AR(2).
 
+\nmsection{Dating the regimes}
+Given two regimes, A (the higher mean) and B, the questions are when each held. Hamilton's filter gives the probability of each regime at period $t$ given the data up to $t$; it runs over the $2^{p+1}$ states $(s_t,\dots,s_{t-p})$, since the AR terms carry the lagged regimes, and its states also give the $k$-period smoother, $s_{t-k}$ given the data to $t$. The full-sample smoother conditions on all the data; here it is \nmcite{Kim1994a}{Kim's (1994)} backward recursion on the same $2^{p+1}$ states, which gives Hamilton's full-sample smoother. A period is in B when its smoothed probability of B exceeds 0.5, Hamilton's rule, and each run of periods is a spell:
+\begin{valuetable}{@{}lllll@{}}
+\textbf{NBER} & \textbf{Hamilton, Table II} & \textbf{Julia} & \textbf{MSTest \fn{St}} & \textbf{Julia at MSTest's estimates}\\\midrule
+1953:III--1954:II & 1953:III--1954:II & 1953:III--1954:II & 1953:III--1954:II & 1953:III--1954:II\\
+1957:III--1958:II & 1957:I--1958:I & 1957:I--1958:I & 1957:II--1958:I & 1957:I--1958:I\\
+1960:II--1961:I & 1960:II--1960:IV & 1960:II--1960:IV & 1960:II--1960:IV & 1960:II--1960:IV\\
+1969:IV--1970:IV & 1969:III--1970:IV & 1969:III--1970:IV & 1969:II--1970:II, 1970:IV & 1969:III--1970:IV\\
+1973:IV--1975:I & 1974:I--1975:I & 1974:I--1975:I & 1974:I--1975:I & 1974:I--1975:I\\
+1980:I--1980:III & 1979:II--1980:III & 1979:II--1980:III & 1979:IV--1980:III & 1979:II--1980:III\\
+1981:III--1982:IV & 1981:II--1982:IV & 1981:II--1982:IV & 1981:II--1982:IV & 1981:II--1982:IV\\
+\end{valuetable}
+The spells A between them run from 2 quarters (1980:IV--1981:I) to 34 (1961:I--1969:II). The article's text agrees too: in 1956:II the four-period smoother gives 0.405 for B and the full sample 0.153 (printed .40 and .15), the largest gap between the two. Its average gap, .016, and the expected length of A, 10.5 quarters, come from its own estimates; at the maximum they are 0.015 and 10.4. On the last 500 daily returns of the S\&P 500 ($p=1$), \fn{regime\_spells(x, :meanvariance; p = 1)} finds a calm regime A (standard deviation 0.71\%) and a turbulent B (2.30\%, a lower mean): 19 spells, 39 days in B.
+
+\newpage
 \nmsub{Against MSTest}
 The R package MSTest 0.1.9 \nmcite{RD2024a}{(Rodriguez-Rondon and Dufour 2024)}, from which the data come, implements both tests. On the same data:
 \begin{valuetable}{@{}Xrrr@{}}
@@ -98,7 +126,7 @@ CHP, switch in mean, supTS, expTS, 1984 & 0.08, 0.66 & 0.0844, 0.6567 & 0.0844, 
 CHP, switch in mean, supTS, expTS, 2010 & 1.11, 1.00 & 1.1076, 1.0046 & 1.1076, 1.0046\\
 Hansen, switching intercept, Grid 2: LR* (p-value, $M=0$) & 1.95 (0.46; 0.49) & 1.9470 (0.466) & 1.9476 (0.476)\\
 \end{valuetable}
-Carrasco, Hu and Ploberger's statistics agree to the four decimals MSTest prints; Hansen's LR* by 0.0006, from different optimizers. The p-values, each from its own 1,000 draws, lie between Hansen's 1992 run (0.46) and his erratum (0.49). MSTest 0.1.9 has three errors in the switch in the mean and variance, which its author fixed in the development version (0.1.9.9012); its values for that test are left out. The development version draws its 100 directions from R's generator with the seed 2938438; reproduced in R and given to this package's code, they give supTS 1.924 and 14.33, expTS 1.006 and 312.44, beside ours 1.927 and 14.31, 1.071 and 241.35.
+Carrasco, Hu and Ploberger's statistics agree to the four decimals MSTest prints; Hansen's LR* by 0.0006, from different optimizers. The p-values, each from its own 1,000 draws, lie between Hansen's 1992 run (0.46) and his erratum (0.49). MSTest 0.1.9 has three errors in the switch in the mean and variance, which its author fixed in the development version (0.1.9.9012); its values for that test are left out. The development version draws its 100 directions from R's generator with the seed 2938438; reproduced in R and given to this package's code, they give supTS 1.924 and 14.33, expTS 1.006 and 312.44, beside ours 1.927 and 14.31, 1.071 and 241.35. For the regimes, MSTest's \fn{MSARmdl} estimates Hamilton's model by EM from 20 random starts: it stops at a log likelihood of $-181.2656$ (mu1 1.1636, p 0.9026), even with tolerances of $10^{-12}$, short of the maximum, $-181.2634$; the likelihood is the same, as our code gives $-181.26555$ at its estimates. Its smoothed probabilities, \fn{St}, are Kim's smoother on the regime of each period alone, two states, which our filter reproduces at its estimates to 0.0005. With the lagged regimes of Hamilton's model that is an approximation: the exact smoother on the $2^{p+1}$ states differs from it by up to 0.35 (1957:I, where it gives A 0.17 and MSTest 0.52), and dates three recessions differently (the table above); at MSTest's own estimates the exact smoother gives Hamilton's Table II. With a switching variance MSTest reaches $-179.13$ where regime 2 lasts a single quarter (its p is 0.00004, and 0 at the maximum along that path); \fn{meanvariance\_estimates} and Carrasco, Hu and Ploberger's \fn{msfit} keep the persistent regimes, at $-179.92$.
 
 \nmsection{How the two tests differ}
 None of Hansen's four models lets the variance switch: Hamilton's model switches the mean, the switching intercept model the intercept, and Models A and B the intercept and phi2, with independent regimes ($q=1-p$) in Model A. On the last 500 daily returns of the S\&P 500 (\fn{sp500} of PollisDatasets, $p=1$), Hansen's switching intercept test gives LR* 0.53 with p-values of 0.86 to 0.91, while Carrasco, Hu and Ploberger's test of a switch in the mean and the variance gives supTS 16.7 with a p-value of 0.00: the regimes of returns lie mostly in their variance. Even with the variance switching in both, four differences would remain.
@@ -123,6 +151,7 @@ Hansen's Tables IV and VII (Monte Carlo runs of 50 trials), his CPU hours and LM
 
 \nmsection{Further considerations}
 \begin{itemize}
+  \item \textbf{A limit of the dating.} With a switching variance the likelihood has several maxima, one of them a regime of single periods; \fn{meanvariance\_estimates} starts from Hamilton's estimates and from a split of the variance, and keeps the larger maximum. The 0.5 cutoff is Hamilton's; few of his smoothed probabilities lie between 0.3 and 0.7, so on GNP the dates hardly depend on it.
   \item \textbf{A limit.} The distribution of LR* is only bounded, so its p-values are conservative and depend on the grid, as Table VI shows. Hansen's test covers his four models, none of which lets the variance switch; \fn{switching\_estimates} and \fn{wald\_tests} keep the AR(4) of his Table VIII. supTS and expTS are optimal against local alternatives, and expTS with random directions is reproducible only with the same draws: a fine grid of angles would make it so.
   \item \textbf{An extension.} The tests of \nmcite{Han1996b}{Hansen (1996b)}, or MSTest's Monte Carlo tests, each tested against a published table; the likelihoods could be offered to MarSwitching.jl.
 \end{itemize}
@@ -134,6 +163,7 @@ Hansen's Tables IV and VII (Monte Carlo runs of 50 trials), his CPU hours and LM
 \nmref{CHP2014a}{Carrasco, M., Hu, L. and Ploberger, W. (2014). Optimal test for Markov switching parameters. \emph{Econometrica} 82(2), 765--784. \nmdoi{10.3982/ECTA8609}}
 \nmref{Han1996b}{Hansen, B. E. (1996b). Inference when a nuisance parameter is not identified under the null hypothesis. \emph{Econometrica} 64(2), 413--430. \nmdoi{10.2307/2171789}}
 \nmref{Ham1989a}{Hamilton, J. D. (1989). A new approach to the economic analysis of nonstationary time series and the business cycle. \emph{Econometrica} 57(2), 357--384. \nmdoi{10.2307/1912559}}
+\nmref{Kim1994a}{Kim, C.-J. (1994). Dynamic linear models with Markov-switching. \emph{Journal of Econometrics} 60(1--2), 1--22. \nmdoi{10.1016/0304-4076(94)90036-1}}
 \nmref{RD2024a}{Rodriguez-Rondon, G. and Dufour, J.-M. (2024). MSTest: An R-package for testing Markov switching models. arXiv:2411.08188. \href{https://arxiv.org/abs/2411.08188}{\color{pblue}arxiv.org/abs/2411.08188}}
 \nmref{Whi1980a}{White, H. (1980). A heteroskedasticity-consistent covariance matrix estimator and a direct test for heteroskedasticity. \emph{Econometrica} 48(4), 817--838. \nmdoi{10.2307/1912934}}
 }

@@ -5,6 +5,8 @@ using Distributions, ForwardDiff, LinearAlgebra, Optim, Random, SpecialFunctions
 # Hansen (1992), with the 1996 erratum
 export ar_estimates, hamilton_estimates, intercept_estimates, switching_estimates, wald_tests, standardized_lr,
 	lr_pvalues
+# Hamilton (1989): the regimes, their probabilities and their dates
+export meanvariance_estimates, filtered_probabilities, smoothed_probabilities, regime_spells, turning_points
 # Carrasco, Hu and Ploberger (2014)
 export rhogrid, nullfit, chptest, chpbootstrap, asymptoticvalues, empiricalvalues, msfit, table3mean,
 	table3meanvariance, table3pvalues, tableA1, tableA2, tableA3

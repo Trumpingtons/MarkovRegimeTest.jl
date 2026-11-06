@@ -70,6 +70,22 @@ end
 		gnpc96 = input("https://raw.githubusercontent.com/Trumpingtons/PollisDatasets.jl/ade6f348c24833c8644074acbde72a51aa495adb/data/gnpc96.csv")
 		check(tableA3(gnpc96), "chp_tableA3", 0, [("mu", "Standard error"), ("mu1", "Standard error"), ("phi1", "Standard error"), ("sigma", "Standard error")])
 	end
+	@testset "Hamilton (1989), the output of his GAUSS program for the article (EXAMPLE1.OUT of Markov1.zip): filtered probabilities" begin
+		gnp82 = input("https://raw.githubusercontent.com/Trumpingtons/PollisDatasets.jl/ade6f348c24833c8644074acbde72a51aa495adb/data/gnp82.csv")
+		check(reduce(hcat, [filtered_probabilities(gnp82; mud = 0.1:0.1:2.0, lag = k)[:, 1] for k in 0:4]), "hamilton_filtered", 0)
+	end
+	@testset "Hamilton (1989), the output of his GAUSS program for the article (EXAMPLE1.OUT of Markov1.zip): full-sample smoothed probabilities" begin
+		gnp82 = input("https://raw.githubusercontent.com/Trumpingtons/PollisDatasets.jl/ade6f348c24833c8644074acbde72a51aa495adb/data/gnp82.csv")
+		check(smoothed_probabilities(gnp82; mud = 0.1:0.1:2.0), "hamilton_smoothed", 0)
+	end
+	@testset "Hamilton (1989), Table I, p. 372" begin
+		gnp82 = input("https://raw.githubusercontent.com/Trumpingtons/PollisDatasets.jl/ade6f348c24833c8644074acbde72a51aa495adb/data/gnp82.csv")
+		check(hamilton_estimates(gnp82; mud = 0.1:0.1:2.0, covariance = :hessian)[[2, 1, 8, 9, 7, 3, 4, 5, 6], :], "hamilton_table1", 0, [("a1", "Standard error"), ("a0", "Estimate"), ("a0", "Standard error"), ("p", "Estimate"), ("p", "Standard error"), ("q", "Estimate"), ("q", "Standard error"), ("sigma", "Standard error"), ("phi1", "Estimate"), ("phi2", "Standard error"), ("phi4", "Standard error")])
+	end
+	@testset "Hamilton (1989), Table II, p. 374: dates by the full-sample smoother" begin
+		gnp82 = input("https://raw.githubusercontent.com/Trumpingtons/PollisDatasets.jl/ade6f348c24833c8644074acbde72a51aa495adb/data/gnp82.csv")
+		check(turning_points(gnp82; mud = 0.1:0.1:2.0), "hamilton_table2", 0)
+	end
 	@testset "Hansen (1996), erratum, Table X, p. 197: standardized LR statistics" begin
 		gnp82 = input("https://raw.githubusercontent.com/Trumpingtons/PollisDatasets.jl/ade6f348c24833c8644074acbde72a51aa495adb/data/gnp82.csv")
 		check(vcat(standardized_lr(gnp82, :modelA; grids = 1:4, mud = 0.2:0.2:2.0), standardized_lr(gnp82, :modelB; grids = 1:4, mud = 0.2:0.2:2.0)), "hansen_erratum10", 0, [("Model B, Grid 2", "LR*")])

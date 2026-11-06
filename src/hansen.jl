@@ -32,21 +32,23 @@ end
 
 lognormal(e, σ) = -0.5 * log(2π) - log(σ) - 0.5 * (e / σ)^2
 
-# The log likelihood of each observation of Hamilton's model (11), x(t) = mu + mud s(t) + u(t),
-# phi(L)u(t) = e(t), of AR order r = size(lags, 2), with θ = (mu, phi1, ..., phir, sigma, mud, p, q): the
-# filter runs over the 2^(r + 1) states of (s(t), ..., s(t-r)) (bit k of a state is s(t-k)), started from
-# the stationary distribution of (s(t-1), ..., s(t-r)).
-function hamilton_loglik(θ, y, lags)
+# P(s(t) = now | s(t-1) = before) of the Markov chain with P = P(1 | 1) and Q = P(0 | 0).
+markov(now, before, p, q) = before == 1 ? (now == 1 ? p : 1 - p) : (now == 1 ? 1 - q : q)
+
+# Hamilton's filter for x(t) = mu + mud s(t) + u(t), phi(L)u(t) = sigma(s(t)) e(t), of AR order
+# r = size(lags, 2), sigma(0) = σ0 and sigma(1) = σ1: the log likelihood of each observation. The filter
+# runs over the 2^(r + 1) states of (s(t), ..., s(t-r)) (bit k of a state is s(t-k)), started from the
+# stationary distribution of (s(t-1), ..., s(t-r)). With `filtered`, a matrix of length(y) rows and
+# 2^(r + 1) columns, it also stores there P(s(t), ..., s(t-r) | x up to t), column j + 1 for state j.
+function hamilton_filter(μ, φ, σ0, σ1, μd, p, q, y, lags, filtered = nothing)
 	order = size(lags, 2)
-	μ, φ, σ, μd, p, q = θ[1], θ[2:order+1], abs(θ[order+2]), θ[order+3], θ[order+4], θ[order+5]
-	T = eltype(θ)
-	transition(now, before) = before == 1 ? (now == 1 ? p : 1 - p) : (now == 1 ? 1 - q : q)
+	T = promote_type(typeof(μ), eltype(φ), typeof(σ0), typeof(σ1), typeof(μd), typeof(p), typeof(q))
 	ergodic = (1 - q) / (2 - p - q)
 	states = 1 << order
 	ξ = zeros(T, states)  # (s(t-1), ..., s(t-r)): bit k - 1 is s(t-k)
 	for m in 0:states-1
 		s = [(m >> k) & 1 for k in 0:order-1]
-		ξ[m+1] = (s[order] == 1 ? ergodic : 1 - ergodic) * prod((transition(s[k], s[k+1]) for k in 1:order-1); init = one(T))
+		ξ[m+1] = (s[order] == 1 ? ergodic : 1 - ergodic) * prod((markov(s[k], s[k+1], p, q) for k in 1:order-1); init = one(T))
 	end
 	ll = zeros(T, length(y))
 	joint = zeros(T, 2states)
@@ -58,10 +60,11 @@ function hamilton_loglik(θ, y, lags)
 			for k in 1:order
 				e -= φ[k] * (lags[t, k] - μ - μd * ((j >> k) & 1))
 			end
-			joint[j+1] = ξ[m+1] * transition(j & 1, m & 1) * exp(lognormal(e, σ))
+			joint[j+1] = ξ[m+1] * markov(j & 1, m & 1, p, q) * exp(lognormal(e, (j & 1) == 1 ? σ1 : σ0))
 			total += joint[j+1]
 		end
 		ll[t] = log(total)
+		filtered === nothing || (filtered[t, :] .= joint ./ total)
 		for m in 0:states-1
 			ξ[m+1] = (joint[m+1] + joint[m+1+states]) / total
 		end
@@ -69,11 +72,26 @@ function hamilton_loglik(θ, y, lags)
 	return ll
 end
 
+# The log likelihood of each observation of Hamilton's model (11), x(t) = mu + mud s(t) + u(t),
+# phi(L)u(t) = e(t), of AR order r = size(lags, 2), with θ = (mu, phi1, ..., phir, sigma, mud, p, q).
+function hamilton_loglik(θ, y, lags)
+	order = size(lags, 2)
+	σ = abs(θ[order+2])
+	return hamilton_filter(θ[1], θ[2:order+1], σ, σ, θ[order+3], θ[order+4], θ[order+5], y, lags)
+end
+
+# The same with a switching variance, θ = (mu, phi1, ..., phir, sigma(0), sigma(1), mud, p, q).
+function meanvariance_loglik(θ, y, lags)
+	order = size(lags, 2)
+	return hamilton_filter(θ[1], θ[2:order+1], abs(θ[order+2]), abs(θ[order+3]), θ[order+4], θ[order+5], θ[order+6], y, lags)
+end
+
 # The log likelihood of each observation of the switching parameters model,
 # x(t) = X(t)'(b + s(t) bd) + sigma(s(t)) e(t), X(t) = (1, x(t-1), ..., x(t-r)), sigma(0) = |sigma|,
 # sigma(1) = |sigma| + |sigmad|, with a first-order Markov chain s(t) started from its stationary
-# distribution.
-function switching_loglik(b, σ, bd, σd, p, q, y, X)
+# distribution. With `filtered`, a matrix of length(y) rows and 2 columns, it also stores there
+# P(s(t) = 0 | x up to t) and P(s(t) = 1 | x up to t).
+function switching_loglik(b, σ, bd, σd, p, q, y, X, filtered = nothing)
 	T = promote_type(eltype(b), eltype(bd), typeof(σ), typeof(σd), typeof(p), typeof(q))
 	σ0 = abs(σ)
 	σ1 = σ0 + abs(σd)
@@ -88,6 +106,7 @@ function switching_loglik(b, σ, bd, σd, p, q, y, X)
 		total = f1 + (1 - one) * exp(lognormal(e0, σ0))
 		ξ = f1 / total
 		ll[t] = log(total)
+		filtered === nothing || (filtered[t, :] .= (1 - ξ, ξ))
 	end
 	return ll
 end
@@ -159,8 +178,52 @@ function ar_estimates(data; column = :gnp, p = 4)
 	return table(θ, white(loglik, θ), sum(loglik(θ)))
 end
 
+const FITS = Dict{Any, Any}()
+
+# The log likelihood of each observation of `model` (:hamilton, :intercept or :meanvariance) as a
+# function of its parameters θ, on the AR(order) sample of x.
+function model_loglik(x, model, order)
+	y, lags = sample(x, order)
+	model == :hamilton && return θ -> hamilton_loglik(θ, y, lags)
+	model == :meanvariance && return θ -> meanvariance_loglik(θ, y, lags)
+	X = [ones(length(y)) lags]
+	return θ -> switching_loglik(θ[1:order+1], θ[order+2], [θ[order+3]; zeros(eltype(θ), order)], 0.0, θ[order+4], θ[order+5], y, X)
+end
+
+# The maximum likelihood estimates of `model`, cached: θ (see `model_loglik`; for :hamilton and
+# :intercept (mu, phi1, ..., phir, sigma, mud, p, q), for :meanvariance (mu, phi1, ..., phir, sigma(0),
+# sigma(1), mud, p, q)), White's covariance V and the log likelihood ll. Hamilton's and the intercept
+# model start, as in Hansen's program, from the point of Grid 3 of P and Q and of the grid `mud` with the
+# largest likelihood ratio; the model with a switching variance starts from Hamilton's estimates with
+# sigma(1) = sigma(0), and from the AR(order) with the standard deviation of the regimes 0.7 and 1.5
+# times its own.
+function fit(x, model, order, mud)
+	key = (model, order, mud, x)
+	haskey(FITS, key) && return FITS[key]
+	loglik = model_loglik(x, model, order)
+	if model == :meanvariance
+		h = fit(x, :hamilton, order, mud).θ
+		b, σ = ar(x, order)
+		starts = [[h[1:order+1]; h[order+2]; h[order+2]; h[order+3:end]],
+			[b[1] / (1 - sum(b[2:end])); b[2:end]; 0.7σ; 1.5σ; 0.0; 0.9; 0.9]]
+	else
+		starts = [best_grid_point(x, model, GRIDS[3], (something(mud, differences(x, model)),), order)]
+	end
+	θ, V, ll = mle(loglik, starts, 2)
+	return FITS[key] = (; θ, V, ll)
+end
+
+# The covariance of the estimates θ: White's, or with `covariance = :hessian` the inverse of minus the
+# Hessian of the log likelihood.
+function covariance_of(x, model, order, f, covariance)
+	covariance == :white && return f.V
+	covariance == :hessian || throw(ArgumentError("covariance must be :white or :hessian"))
+	loglik = model_loglik(x, model, order)
+	return Symmetric(inv(-ForwardDiff.hessian(θ -> sum(loglik(θ)), f.θ)))
+end
+
 """
-    hamilton_estimates(data; column = :gnp, p = 4, mud = nothing)
+    hamilton_estimates(data; column = :gnp, p = 4, mud = nothing, covariance = :white)
 
 The maximum likelihood estimates of Hamilton's Markov switching model (11), x(t) = mu + mud s(t) + u(t),
 phi(L)u(t) = e(t) of order p, with P = P(s(t) = 1 | s(t-1) = 1) and Q = P(s(t) = 0 | s(t-1) = 0), of a
@@ -168,43 +231,65 @@ series: `data` is a vector of growth rates or returns, or a Tables.jl table whos
 (see [`growth`](@ref)). The maximization starts, as in Hansen's program, from the point of Grid 3 of P
 and Q and of the grid `mud` of the difference between the regimes (by default 0.1, ..., 2 times the
 standard deviation of the series) with the largest likelihood ratio. A (p + 6) × 2 matrix: mu, mud,
-phi1 to phip, sigma, P and Q in its rows, their estimates and White's standard errors in its columns,
-then the log likelihood (NaN for its standard error). Table II of Hansen (1992) is
-`hamilton_estimates(gnp82; mud = 0.1:0.1:2.0)`.
+phi1 to phip, sigma, P and Q in its rows, their estimates and standard errors in its columns, then the
+log likelihood (NaN for its standard error). The standard errors are White's, or with
+`covariance = :hessian` those of the inverse of minus the Hessian of the log likelihood, as Hamilton's.
+Table II of Hansen (1992) is `hamilton_estimates(gnp82; mud = 0.1:0.1:2.0)`, and the estimates of
+Table I of Hamilton (1989) are rows 2, 1, 8, 9, 7, 3, 4, 5 and 6 of
+`hamilton_estimates(gnp82; mud = 0.1:0.1:2.0, covariance = :hessian)`.
 """
-function hamilton_estimates(data; column = :gnp, p = 4, mud = nothing)
+function hamilton_estimates(data; column = :gnp, p = 4, mud = nothing, covariance = :white)
 	checkorder(p, :hamilton)
 	x = series(data, column)
-	y, lags = sample(x, p)
-	start = best_grid_point(x, :hamilton, GRIDS[3], (something(mud, differences(x, :hamilton)),), p)
-	loglik(θ) = hamilton_loglik(θ, y, lags)
-	θ, V, ll = mle(loglik, [start], 2)
+	f = fit(x, :hamilton, p, mud)
+	V = covariance_of(x, :hamilton, p, f, covariance)
 	order = [1; p + 3; 2:p+2; p + 4; p + 5]
-	return table(θ[order], V[order, order], ll)
+	return table(f.θ[order], V[order, order], f.ll)
 end
 
 """
-    intercept_estimates(data; column = :gnp, p = 4, mud = nothing)
+    intercept_estimates(data; column = :gnp, p = 4, mud = nothing, covariance = :white)
 
 The maximum likelihood estimates of the Markov switching intercept model (12),
 phi(L)x(t) = mu + mud s(t) + e(t) of order p, of a series: `data` is a vector of growth rates or returns,
 or a Tables.jl table whose `column` holds levels (see [`growth`](@ref)). The maximization starts, as in
 Hansen's program, from the point of Grid 3 of P and Q and of the grid `mud` (by default 0.1, ..., 2 times
 the standard deviation of the series) with the largest likelihood ratio. A (p + 6) × 2 matrix: mu, mud,
-phi1 to phip, sigma, P and Q in its rows, their estimates and White's standard errors in its columns,
-then the log likelihood (NaN for its standard error). Table V of Hansen (1992) is
-`intercept_estimates(gnp82; mud = 0.1:0.1:2.0)`.
+phi1 to phip, sigma, P and Q in its rows, their estimates and standard errors (White's, or with
+`covariance = :hessian` from the Hessian) in its columns, then the log likelihood (NaN for its standard
+error). Table V of Hansen (1992) is `intercept_estimates(gnp82; mud = 0.1:0.1:2.0)`.
 """
-function intercept_estimates(data; column = :gnp, p = 4, mud = nothing)
+function intercept_estimates(data; column = :gnp, p = 4, mud = nothing, covariance = :white)
 	checkorder(p)
 	x = series(data, column)
-	y, lags = sample(x, p)
-	X = [ones(length(y)) lags]
-	start = best_grid_point(x, :intercept, GRIDS[3], (something(mud, differences(x, :intercept)),), p)
-	loglik(θ) = switching_loglik(θ[1:p+1], θ[p+2], [θ[p+3]; zeros(p)], 0.0, θ[p+4], θ[p+5], y, X)
-	θ, V, ll = mle(loglik, [start], 2)
+	f = fit(x, :intercept, p, mud)
+	V = covariance_of(x, :intercept, p, f, covariance)
 	order = [1; p + 3; 2:p+2; p + 4; p + 5]
-	return table(θ[order], V[order, order], ll)
+	return table(f.θ[order], V[order, order], f.ll)
+end
+
+"""
+    meanvariance_estimates(data; column = :gnp, p = 4, mud = nothing, covariance = :white)
+
+The maximum likelihood estimates of Hamilton's model with a switching variance,
+x(t) = mu + mud s(t) + u(t), phi(L)u(t) = sigma(s(t)) e(t) of order p, of a series: `data` is a vector of
+growth rates or returns, or a Tables.jl table whose `column` holds levels (see [`growth`](@ref)). The
+maximization starts from the estimates of Hamilton's model ([`hamilton_estimates`](@ref), with the grid
+`mud`) with sigma(1) = sigma(0), and from the AR(p) with sigma(0) and sigma(1) 0.7 and 1.5 times its
+standard deviation; the larger maximum is kept. A (p + 7) × 2 matrix: mu, mud, phi1 to phip, sigma(0),
+sigma(1), P and Q in its rows, their estimates and standard errors (White's, or with
+`covariance = :hessian` from the Hessian) in its columns, then the log likelihood (NaN for its standard
+error).
+"""
+function meanvariance_estimates(data; column = :gnp, p = 4, mud = nothing, covariance = :white)
+	checkorder(p)
+	x = series(data, column)
+	f = fit(x, :meanvariance, p, mud)
+	V = covariance_of(x, :meanvariance, p, f, covariance)
+	θ = copy(f.θ)
+	θ[[p + 2, p + 3]] = abs.(θ[[p + 2, p + 3]])
+	order = [1; p + 4; 2:p+3; p + 5; p + 6]
+	return table(θ[order], V[order, order], f.ll)
 end
 
 # The grids of the switching parameters of a model: mud, then phi2d for Models A and B.
@@ -407,4 +492,169 @@ function lr_pvalues(data, model::Symbol; column = :gnp, p = 4, grids = 1:3, mud 
 		end
 	end
 	return result
+end
+
+# Regimes: Hamilton's (1989) filter and smoother, and the dating of the regimes.
+
+const REGIME_MODELS = "`:hamilton` (Hamilton's model (11), the mean switches), `:intercept` (the switching intercept model (12)) or `:meanvariance` (Hamilton's model with a switching variance, see [`meanvariance_estimates`](@ref))"
+
+function checkregime(order, model)
+	model in (:hamilton, :intercept, :meanvariance) || throw(ArgumentError("unknown model $model: :hamilton, :intercept or :meanvariance"))
+	checkorder(order)
+end
+
+# The transition matrix M of the states of the filter, M[i + 1, j + 1] = P(state(t+1) = j | state(t) = i),
+# a state being (s(t), ..., s(t-order)) with bit k for s(t-k).
+function transitions(p, q, order)
+	K = 2 << order
+	M = zeros(K, K)
+	for i in 0:K-1, s in 0:1
+		M[i+1, (((i << 1) | s) & (K - 1))+1] = markov(s, i & 1, p, q)
+	end
+	return M
+end
+
+# Kim's (1994) smoother: P(state(t) | all x) from P(state(t) | x up to t), one row for each t, and the
+# transition matrix M of the states.
+function smooth(filtered, M)
+	smoothed = copy(filtered)
+	for t in size(filtered, 1)-1:-1:1
+		predicted = transpose(M) * filtered[t, :]
+		ratio = [d > 0 ? s / d : 0.0 for (s, d) in zip(smoothed[t+1, :], predicted)]
+		smoothed[t, :] = filtered[t, :] .* (M * ratio)
+	end
+	return smoothed
+end
+
+# The filtered probabilities of the states of `model` at its estimates, their transition matrix, and
+# whether s = 1 is the regime of the higher mean (mud > 0).
+function filtered_states(x, model, order, mud)
+	θ = fit(x, model, order, mud).θ
+	y, lags = sample(x, order)
+	r = order
+	if model == :intercept
+		filtered = zeros(length(y), 2)
+		switching_loglik(θ[1:r+1], θ[r+2], [θ[r+3]; zeros(r)], 0.0, θ[r+4], θ[r+5], y, [ones(length(y)) lags], filtered)
+		return filtered, transitions(θ[r+4], θ[r+5], 0), θ[r+3] > 0
+	end
+	σ0, σ1, μd, p, q = model == :hamilton ? (abs(θ[r+2]), abs(θ[r+2]), θ[r+3], θ[r+4], θ[r+5]) :
+		(abs(θ[r+2]), abs(θ[r+3]), θ[r+4], θ[r+5], θ[r+6])
+	filtered = zeros(length(y), 2 << r)
+	hamilton_filter(θ[1], θ[2:r+1], σ0, σ1, μd, p, q, y, lags, filtered)
+	return filtered, transitions(p, q, r), μd > 0
+end
+
+# P(regime A), P(regime B) of s(t-lag), from the probabilities of the states (one row for each t).
+function regimes(states, lag, high)
+	one = [sum(states[t, j+1] for j in 0:size(states, 2)-1 if (j >> lag) & 1 == 1) for t in axes(states, 1)]
+	return high ? [one 1 .- one] : [1 .- one one]
+end
+
+"""
+    filtered_probabilities(data, model = :hamilton; column = :gnp, p = 4, mud = nothing, lag = 0)
+
+Hamilton's (1989) filter: the probabilities of the two regimes of `model`, one of $REGIME_MODELS, at its
+maximum likelihood estimates (see [`hamilton_estimates`](@ref); `mud` is the grid of the starting
+search), given the series up to each period. `data` is a vector of growth rates or returns, or a
+Tables.jl table whose `column` holds levels (see [`growth`](@ref)). Regime A is the one with the higher
+mean, regime B the other. An n × 2 matrix, one row for each period from the (p + 1)-th of the series
+(its first p values are the first lags): P(A) and P(B) at period t - `lag` given the series up to t.
+With `lag` = 0 these are the filtered probabilities; with `lag` from 1 to p (Hamilton's model and the
+model with a switching variance) the `lag`-period smoother of Hamilton's section 4.3 (with `lag` = 4
+his Figure 1, panel B). The filtered probabilities of Hamilton's GNP example (his program's output for
+the article) are `filtered_probabilities(gnp82; mud = 0.1:0.1:2.0, lag = k)[:, 1]` for k = 0 to 4.
+"""
+function filtered_probabilities(data, model::Symbol = :hamilton; column = :gnp, p = 4, mud = nothing, lag = 0)
+	checkregime(p, model)
+	0 <= lag <= (model == :intercept ? 0 : p) || throw(ArgumentError("lag must be from 0 to $(model == :intercept ? 0 : p) for $model"))
+	states, _, high = filtered_states(series(data, column), model, p, mud)
+	return regimes(states, lag, high)
+end
+
+"""
+    smoothed_probabilities(data, model = :hamilton; column = :gnp, p = 4, mud = nothing)
+
+The full-sample smoothed probabilities of the two regimes of `model`, one of $REGIME_MODELS, at its
+maximum likelihood estimates, given the whole series: Kim's (1994) smoother on the states of Hamilton's
+(1989) filter, which gives the probabilities of Hamilton's full-sample smoother. `data`, `column`, `p`
+and `mud` as for [`filtered_probabilities`](@ref). An n × 2 matrix, one row for each period from the
+(p + 1)-th of the series: P(A) and P(B), A the regime with the higher mean. Hamilton dated the
+recessions of US GNP by P(B) > 0.5 (his Table II, see [`turning_points`](@ref)).
+"""
+function smoothed_probabilities(data, model::Symbol = :hamilton; column = :gnp, p = 4, mud = nothing)
+	checkregime(p, model)
+	states, M, high = filtered_states(series(data, column), model, p, mud)
+	return regimes(smooth(states, M), 0, high)
+end
+
+"""
+    regime_spells(probabilities; cutoff = 0.5, dates = nothing)
+    regime_spells(data, model = :hamilton; column = :gnp, p = 4, mud = nothing, cutoff = 0.5, dates = nothing)
+
+The spells of the two regimes: the periods are in regime B when its probability exceeds `cutoff`
+(Hamilton's rule, 0.5), in regime A otherwise, and each run of periods in one regime is a spell. From an
+n × 2 matrix of `probabilities` of regimes A and B, as [`smoothed_probabilities`](@ref) and
+[`filtered_probabilities`](@ref) return, with `dates` a vector of the dates of its rows; or from a
+series, `data`, `model`, `column`, `p` and `mud` as for [`smoothed_probabilities`](@ref), by its
+smoothed probabilities, with `dates` a vector of the dates of the rows of `data` (a vector of growth
+rates or returns, or a table of levels), a column of the table (a Symbol), or several (a tuple of
+Symbols, such as `(:year, :quarter)`, each date then a tuple). Without `dates`, the periods are the
+row numbers of `probabilities` or of `data`. A column table (a named tuple of vectors): `regime` ("A"
+or "B"), `start` and `stop`, the first and last periods of each spell, and `periods`, its length.
+"""
+function regime_spells(probabilities::AbstractMatrix; cutoff = 0.5, dates = nothing)
+	n = size(probabilities, 1)
+	labels = dates === nothing ? collect(1:n) : collect(dates)
+	length(labels) == n || throw(ArgumentError("dates must have one date for each row of the probabilities ($n)"))
+	regime, start, stop, periods = String[], eltype(labels)[], eltype(labels)[], Int[]
+	for t in 1:n
+		r = probabilities[t, 2] > cutoff ? "B" : "A"
+		if !isempty(regime) && regime[end] == r
+			stop[end] = labels[t]
+			periods[end] += 1
+		else
+			push!(regime, r)
+			push!(start, labels[t])
+			push!(stop, labels[t])
+			push!(periods, 1)
+		end
+	end
+	return (; regime, start, stop, periods)
+end
+
+# The dates of the periods of the probabilities of a series of order p: those of the rows of `data` from
+# the (p + 2)-th for a table of levels (its growth rates start at its second row), from the (p + 1)-th for a
+# vector.
+function period_dates(data, dates, p)
+	from = data isa AbstractVector ? p + 1 : p + 2
+	column(name) = Tables.getcolumn(Tables.columns(data), Symbol(name))
+	rows = data isa AbstractVector ? length(data) : length(column(first(Tables.columnnames(Tables.columns(data)))))
+	labels = dates === nothing ? collect(1:rows) :
+		dates isa Union{Symbol, AbstractString} ? collect(column(dates)) :
+		dates isa Tuple ? collect(zip((column(d) for d in dates)...)) : collect(dates)
+	length(labels) == rows || throw(ArgumentError("dates must have one date for each row of the data ($rows)"))
+	return labels[from:end]
+end
+
+function regime_spells(data, model::Symbol = :hamilton; column = :gnp, p = 4, mud = nothing, cutoff = 0.5, dates = nothing)
+	probabilities = smoothed_probabilities(data, model; column, p, mud)
+	return regime_spells(probabilities; cutoff, dates = period_dates(data, dates, p))
+end
+
+"""
+    turning_points(data, model = :hamilton; column = :gnp, p = 4, mud = nothing, cutoff = 0.5,
+                   dates = (:year, :quarter), regime = "B")
+
+The first and last periods of the spells of `regime` (B, the regime of the lower mean: the recessions of
+GNP) found by [`regime_spells`](@ref) from the smoothed probabilities of `model` (`data`, `column`, `p`,
+`mud`, `cutoff` as there), dated by two columns of the table `data`, by default its year and quarter. A
+matrix, one row for each spell: the year and quarter (or the two columns of `dates`) of its first
+period, then of its last. Table II of Hamilton (1989), the peaks and troughs of US GNP by his full-sample
+smoother, is `turning_points(gnp82; mud = 0.1:0.1:2.0)`.
+"""
+function turning_points(data, model::Symbol = :hamilton; column = :gnp, p = 4, mud = nothing, cutoff = 0.5,
+		dates = (:year, :quarter), regime = "B")
+	spells = regime_spells(data, model; column, p, mud, cutoff, dates)
+	chosen = findall(==(regime), spells.regime)
+	return [[s[k] for s in spells.start[chosen], k in 1:2] [s[k] for s in spells.stop[chosen], k in 1:2]]
 end
