@@ -1,0 +1,3 @@
+Test,Statistic,Degrees of freedom,p-value
+Unconstrained vs. switching intercept,15.8,5,0.007
+Unconstrained model vs. simple switching parameters,1.07,7,0.994

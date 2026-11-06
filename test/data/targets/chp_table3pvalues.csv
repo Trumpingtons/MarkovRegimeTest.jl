@@ -1,0 +1,5 @@
+Test,1952Q2 to 1984Q4,1952Q2 to 2010Q4
+"Switch in mean, supTS",0.84,0.25
+"Switch in mean, expTS",0.72,0.23
+"Switch in mean and variance, supTS",0.34,0.00
+"Switch in mean and variance, expTS",0.17,0.00

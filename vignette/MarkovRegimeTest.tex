@@ -1,0 +1,124 @@
+% Vignette of the Pollis method MarkovRegimeTest
+% Compile with: julia -e 'using PollisTeX; display(compile("MarkovRegimeTest.tex"))'
+\input{vignette_style}
+\renewcommand{\vignetteauthor}{Antonio Saragga Seabra}
+\renewcommand{\vignettedate}{6 November 2026}
+\renewcommand{\vignettelicense}{MIT}
+
+\begin{document}
+
+\nmhead{One regime against two}
+  {Tests of one regime against two\\ in Markov switching models of GNP}
+  {Hansen's standardized LR test and Carrasco, Hu and Ploberger's optimal tests, reproduced on US GNP.}
+
+\factsheet
+  {\nmcite{Han1992a}{Hansen (1992)}: Tables I--III, V, VI, VIII, IX; the \nmcite{Han1996a}{Hansen (1996a)} erratum: Tables III, VI, X. \nmcite{CHP2014a}{Carrasco, Hu and Ploberger (2014)}: Table III; supplement, Tables A-I to A-III. US real GNP, 1951--1984 and 1951--2010: \fn{gnp82} and \fn{gnpc96} of PollisDatasets, the files of the authors' replication programs as kept in MSTest.}
+  {MarSwitching.jl estimates Markov switching models but has no test of the number of regimes; this package writes its own likelihoods and filters, and the derivatives of the null model.}
+  {\package{MarkovRegimeTest}{https://github.com/Trumpingtons/MarkovRegimeTest.jl}}
+  {340 printed values: 307 tested and all pass, the exact ones to every digit, the simulated ones within 0.03. The other 33 are shown below, each with its reason. Against MSTest, every statistic agrees to the digits published.}
+
+\nmsection{The problem}
+Does US GNP growth switch between two regimes, as \nmcite{Ham1989a}{Hamilton (1989)} proposed, or is a one-regime AR(4) enough? Under the null the difference between the regimes is zero, the transition probabilities p and q are not identified, and the scores of the switching parameters are identically zero. The likelihood ratio has no chi-squared limit. Hansen bounds its distribution on a grid of the parameters not identified; Carrasco, Hu and Ploberger build tests that need only the estimates under the null.
+
+\nmsection{The methods}
+\nmsub{Hansen's standardized LR statistic}
+Let $\alpha=(\beta,\gamma)$ hold the switching parameters $\beta$ (mud, and for Models A and B also phi2d) and $\gamma=(p,q)$. For each $\alpha$ on a grid the other parameters are concentrated out by maximum likelihood. With $q_t(\alpha)$ the difference from the AR(4) in the log likelihood of observation $t$,
+\[
+\mathrm{LR}^*_n=\sup_\alpha \frac{\sum_t q_t(\alpha)}{V_n(\alpha)^{1/2}},\qquad V_n(\alpha)=\sum_t\bigl(q_t(\alpha)-\bar q(\alpha)\bigr)^2 .
+\]
+The p-values follow the erratum's method (3'): 1,000 draws of $\sup_\alpha\sum_{k=0}^{M}\sum_t \tilde q_t(\alpha)u_{t+k}/\sqrt{1+M}$, $u_t$ standard normal, $\tilde q_t$ the demeaned $q_t$ over $V_n^{1/2}$, Bartlett bandwidth $M=0,\dots,4$. mud runs over 0.1, \dots, 2; p and q over Grid~1 (0.2 to 0.8 by 0.2) to Grid~5 (0.1 to 0.9 by 0.05). Estimates are exact maximum likelihood with White's standard errors \nmcite{Whi1980a}{(White 1980)}, on 1952:2--1984:4, $n=131$.
+
+\nmsub{Carrasco, Hu and Ploberger's supTS and expTS}
+Under the null the AR(4) is fitted by least squares. For a direction $h$ of the switching parameters and the autocorrelation $\rho$ of the regimes, with $l_t$ and $m_t$ the first and second derivatives of the log likelihood of observation $t$,
+\[
+\mu_{2,t}=\tfrac12 h'(m_t+l_tl_t')h+\sum_{s<t}\rho^{\,t-s}h'l_tl_s'h,\qquad
+\mathrm{TS}(h,\rho)=\frac{\sum_t\mu_{2,t}/\sqrt{T}}{\bigl(\overline{\varepsilon^2}\bigr)^{1/2}},
+\]
+$\varepsilon_t$ the residual of $\mu_{2,t}$ on the scores. supTS is the largest $\tfrac12\max(\mathrm{TS},0)^2$, and expTS the mean of $\sqrt{2\pi}\,e^{(\mathrm{TS}-1)^2/2}\,\Phi(\mathrm{TS}-1)$, over $\rho=-0.7,\dots,0.7$ by 0.01. A switch in the mean has $h=(1,0,\dots)$; a switch in the mean and the variance, 100 random directions, drawn here with a fixed seed. The p-values come from 3,000 parametric bootstrap samples. The details the article leaves open follow the authors' GAUSS programs.
+
+\nmsub{The functions}
+Hansen: \fn{ar\_estimates}, \fn{hamilton\_estimates}, \fn{intercept\_estimates} and \fn{switching\_estimates} return Tables I, II, V and VIII; \fn{wald\_tests}, Table IX; \fn{standardized\_lr(gnp, model; grids)} and \fn{lr\_pvalues}, LR* and its p-values, for \fn{:hamilton}, \fn{:intercept}, \fn{:modelA} or \fn{:modelB}. Carrasco, Hu and Ploberger: \fn{nullfit}, the AR(p) under the null; \fn{chptest(x; switching)}, supTS and expTS of any series, AR order and switching parameters; \fn{chpbootstrap}, with their p-values; \fn{asymptoticvalues} and \fn{empiricalvalues}, critical values; \fn{msfit}, the switching AR(4); \fn{table3mean} to \fn{tableA3}, the published tables. \fn{growth} gives 100 times the first difference of log GNP.
+
+\nmsection{What the tests show}
+\nmsub{All targets}
+\begin{valuetable}{@{}lXrrc@{}}
+\textbf{Source} & \textbf{Value} & \textbf{Published} & \textbf{Julia} & \\\midrule
+H, Table I & AR(4): 12 estimates and SEs, log likelihood, all to every digit & $-183.669$ & $-183.669$ & \ok\\
+H, Table II & Hamilton's model: 18 of 19 to every digit; log likelihood & $-181.263$ & $-181.263$ & \ok\\
+H, Table II & standard error of mu & 0.465 & 0.466 & \no\\
+H, Table V & switching intercept: 17 of 19 to every digit; log likelihood & $-180.184$ & $-180.184$ & \ok\\
+H, Table V & p; q & 0.912; 0.669 & 0.913; 0.668 & \no\\
+H, Table VIII & 44 values, all to every digit; likelihoods & $-174.388$; $-176.990$ & $-174.388$; $-176.990$ & \ok\\
+H, Table IX & Wald statistics (p-values), all to every digit & 15.8 (0.007); 1.07 (0.994) & 15.8 (0.007); 1.07 (0.994) & \ok\\
+H, Erratum III & LR*, Hamilton's model, Grids 1--3 & 1.24, 1.56, 1.55 & 1.24, 1.56, 1.55 & \ok\\
+H, Erratum VI & LR*, switching intercept, Grids 1--5 & 2.20, 1.95, 2.09, 2.21, 2.23 & 2.20, 1.95, 2.09, 2.21, 2.23 & \ok\\
+H, Erratum X & LR*, Models A and B, 7 of 8 to every digit; Model A & 3.50, 3.53, 3.61, 3.59 & 3.50, 3.53, 3.61, 3.59 & \ok\\
+H, Erratum X & LR*, Model B, Grid 2 & 3.55 & 3.56 & \no\\
+H, p-values & 88, Tables III, VI (1992 and erratum) and X: 74 within 0.03 & & & \ok\\
+H, p-values & the other 14, in the table below & & & \no\\
+C, Table A-II & AR(4), both samples: 14 estimates and $T$, 10 of 12 SEs, to every digit; sigma, 2010 & 0.883 (0.056) & 0.883 (0.056) & \ok\\
+C, Table A-II & 1984 standard errors of mu; sigma & 0.112; 0.061 & 0.111; 0.064 & \no\\
+C, Table III & switch in mean, supTS, expTS: 1984; 2010 & 0.08, 0.66; 1.11, 1.00 & 0.08, 0.66; 1.11, 1.00 & \ok\\
+C, Table III & switch in mean and variance, supTS: 1984; 2010 & 1.93; 14.34 & 1.93; 14.31 & \ok\\
+C, Table III & switch in mean and variance, expTS: 1984; 2010 & 1.12; 230.61 & 1.07; 241.35 & \no\\
+C, Table III & 8 bootstrap p-values, within 0.03; mean, 1984 & 0.84, 0.72 & 0.85, 0.74 & \ok\\
+C, Table A-I & 65 critical values: 37 to every digit, 28 within 0.03; the furthest & 2.45; 4.17 & 2.48; 4.14 & \ok\\
+C, Table A-I & six 99\% values; 95\%, supTS, $[-0.98,0.98]$, empirical & 3.81 \dots\ 4.52; 2.78 & 4.20 \dots\ 4.59; 2.74 & \no\\
+C, Table A-III & switching AR(4): 10 estimates and $L$ to every digit; 6 SEs & 279.142 & 279.142 & \ok\\
+C, Table A-III & standard errors of mu, mu1, phi1, sigma & .172, .232, .083, .090 & .168, .226, .082, .089 & \no\\
+\end{valuetable}
+H: \nmcite{Han1992a}{Hansen (1992)} and its erratum; C: \nmcite{CHP2014a}{Carrasco, Hu and Ploberger (2014)} and its supplement. The rows marked \no\ are the 33 values not tested.
+
+\nmsub{Where they differ}
+\emph{Exact values.} The tests allow none of them to be off; 10 are, each from an exact maximum. In Hansen's tables, by one in the last digit: the SE of mu in Table II is 0.46579; Table V's p = 0.91254 and q = 0.66821 (at Hansen's 0.912 and 0.669 the log likelihood is 0.00013 lower); Model B, Grid 2 gives 3.55558 from three different starts. Hansen's numerical optimizer and Hessian are the likely cause. In Carrasco, Hu and Ploberger's supplement, the estimates are exact but six standard errors are off by 1 to 6 in the third decimal: GAUSS's CML took numerical derivatives, and its 1984 sigma, 0.061, is the plain inverse Hessian (0.0607) rather than the QML sandwich of every other value.
+
+\emph{Simulated values.} The tests allow 0.03. Hansen's p-values come from 1,000 draws, about 0.015 of noise per run, and his two runs differ by up to 0.07 (VI, Grid 5: 0.32 and 0.39). The 14 off by more:
+\begin{valuetable}{@{}Xccccc@{}}
+\textbf{Table, grid, bandwidth} & \textbf{Hansen} & \textbf{Julia} & \textbf{Table, grid, bandwidth} & \textbf{Hansen} & \textbf{Julia}\\\midrule
+III, Grid 2, 1992 & .68 & .72 & VI, Grid 2, $M=3$ & .46 & .42\\
+VI, Grid 5, 1992 & .32 & .36 & VI, Grid 2, $M=4$ & .48 & .44\\
+III, Grid 1, $M=3$ & .76 & .72 & VI, Grid 3, $M=2$ & .43 & .39\\
+VI, Grid 1, $M=0$ & .29 & .25 & VI, Grid 3, $M=3$ & .41 & .37\\
+VI, Grid 1, $M=2$ & .30 & .25 & VI, Grid 3, $M=4$ & .43 & .37\\
+VI, Grid 2, $M=1$ & .51 & .47 & VI, Grid 4, $M=3$ & .37 & .33\\
+VI, Grid 2, $M=2$ & .50 & .45 & VI, Grid 4, $M=4$ & .38 & .34\\
+\end{valuetable}
+Twelve are erratum p-values of Tables III and VI, all above ours; the erratum's $M=0$ column of Table VI sits 0.03 to 0.07 above Hansen's 1992 run, though it says $M=0$ is the original method. Our $M=0$ column lies between Hansen's two runs in 7 of 8 rows.
+
+For Carrasco, Hu and Ploberger, expTS with a switch in the variance averages over 100 random directions, which GAUSS's generator cannot reproduce. Only the angle of $h$ counts, and the average is carried by the few cells near the best angle, where $e^{\mathrm{TS}^2/2}$ is largest: in 2010 the best cell is worth tens of thousands, the average about 240. With MSTest's 100 directions in place of ours (below) the same code gives 312.44; supTS moves only from 14.31 to 14.33. The 99\% quantiles of Table A-I are the top 1\% of 10,000 or 100,000 heavy-tailed draws, which vary by 0.1 to 0.4 from one set of draws to another.
+
+\nmsub{One sample choice}
+The constrained model of Hansen's Table VIII is an AR(2). Its published estimates and likelihood are reproduced only on the AR(2) sample, 1951:4--1984:4 ($n=133$); on the AR(4) sample the likelihood is $-174.893$, not $-176.990$. Footnote 9 suggests the reason: earlier versions of the paper used an AR(2).
+
+\nmsub{Against MSTest}
+The R package MSTest 0.1.9 \nmcite{RD2024a}{(Rodriguez-Rondon and Dufour 2024)}, from which the data come, implements both tests. On the same data:
+\begin{valuetable}{@{}Xrrr@{}}
+\textbf{Value} & \textbf{Published} & \textbf{MSTest} & \textbf{Julia}\\\midrule
+CHP, switch in mean, supTS, expTS, 1984 & 0.08, 0.66 & 0.0844, 0.6567 & 0.0844, 0.6567\\
+CHP, switch in mean, supTS, expTS, 2010 & 1.11, 1.00 & 1.1076, 1.0046 & 1.1076, 1.0046\\
+Hansen, switching intercept, Grid 2: LR* (p-value, $M=0$) & 1.95 (0.46; 0.49) & 1.9470 (0.466) & 1.9476 (0.476)\\
+\end{valuetable}
+Carrasco, Hu and Ploberger's statistics agree to the four decimals MSTest prints; Hansen's LR* by 0.0006, from different optimizers. The p-values, each from its own 1,000 draws, lie between Hansen's 1992 run (0.46) and his erratum (0.49). MSTest 0.1.9 has three errors in the switch in the mean and variance, which its author fixed in the development version (0.1.9.9012); its values for that test are left out. The development version draws its 100 directions from R's generator with the seed 2938438; reproduced in R and given to this package's code, they give supTS 1.924 and 14.33, expTS 1.006 and 312.44, beside ours 1.927 and 14.31, 1.071 and 241.35.
+
+\nmsection{Still open}
+Hansen's Tables IV and VII (Monte Carlo runs of 50 trials), his CPU hours and LM stability test, and Carrasco, Hu and Ploberger's Tables I and II (sizes and powers) are not reproduced. Nothing found explains why the erratum's Table VI p-values sit above both Hansen's 1992 run and ours. Hansen's Table X, both models on all four grids, takes 23 seconds here; its Model B, Grid 4 alone took 15.9 CPU hours in the erratum.
+
+\nmsection{Further considerations}
+\begin{itemize}
+  \item \textbf{A limit.} The distribution of LR* is only bounded, so its p-values are conservative and depend on the grid, as Table VI shows; Hansen's functions cover the four models of his article. supTS and expTS are optimal against local alternatives, and expTS with random directions is reproducible only with the same draws: a fine grid of angles would make it so.
+  \item \textbf{An extension.} The tests of \nmcite{Han1996b}{Hansen (1996b)}, or MSTest's Monte Carlo tests, each tested against a published table; the likelihoods could be offered to MarSwitching.jl.
+\end{itemize}
+
+\nmsection{References}
+{\footnotesize\sloppy
+\nmref{Han1992a}{Hansen, B. E. (1992). The likelihood ratio test under nonstandard conditions: Testing the Markov switching model of GNP. \emph{Journal of Applied Econometrics} 7(S1), S61--S82. \nmdoi{10.1002/jae.3950070506}}
+\nmref{Han1996a}{Hansen, B. E. (1996a). Erratum: The likelihood ratio test under nonstandard conditions: Testing the Markov switching model of GNP. \emph{Journal of Applied Econometrics} 11(2), 195--198. \href{https://doi.org/10.1002/(SICI)1099-1255(199603)11:2\%3C195::AID-JAE375\%3E3.0.CO;2-2}{\color{pblue}doi:10.1002/(SICI)1099-1255(199603)\allowbreak 11:2<195::AID-JAE375>3.0.CO;2-2}}
+\nmref{CHP2014a}{Carrasco, M., Hu, L. and Ploberger, W. (2014). Optimal test for Markov switching parameters. \emph{Econometrica} 82(2), 765--784. \nmdoi{10.3982/ECTA8609}}
+\nmref{Han1996b}{Hansen, B. E. (1996b). Inference when a nuisance parameter is not identified under the null hypothesis. \emph{Econometrica} 64(2), 413--430. \nmdoi{10.2307/2171789}}
+\nmref{Ham1989a}{Hamilton, J. D. (1989). A new approach to the economic analysis of nonstationary time series and the business cycle. \emph{Econometrica} 57(2), 357--384. \nmdoi{10.2307/1912559}}
+\nmref{RD2024a}{Rodriguez-Rondon, G. and Dufour, J.-M. (2024). MSTest: An R-package for testing Markov switching models. arXiv:2411.08188. \href{https://arxiv.org/abs/2411.08188}{\color{pblue}arxiv.org/abs/2411.08188}}
+\nmref{Whi1980a}{White, H. (1980). A heteroskedasticity-consistent covariance matrix estimator and a direct test for heteroskedasticity. \emph{Econometrica} 48(4), 817--838. \nmdoi{10.2307/1912934}}
+}
+
+\nmcredit
+\end{document}

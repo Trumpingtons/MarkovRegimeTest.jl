@@ -1,0 +1,15 @@
+# The vignette of MarkovRegimeTest.jl, written by Pollis (Compose > New Methods > Package and Publish) and shown in
+# Help > Documentation > Package Vignettes once the package is installed.
+
+article = "https://doi.org/10.1002/jae.3950070506"
+author = "Antonio Saragga Seabra"
+citation = "Hansen, B. E. (1992). The likelihood ratio test under nonstandard conditions: Testing the Markov switching model of GNP. Journal of Applied Econometrics 7(S1), S61-S82. Erratum: Journal of Applied Econometrics 11(2), 195-198 (1996). Carrasco, M., Hu, L. and Ploberger, W. (2014). Optimal test for Markov switching parameters. Econometrica 82(2), 765-784."
+description = "Two tests of a one-regime autoregression against a two-regime Markov switching model, on US real GNP. Hansen's standardized likelihood ratio test, with the 1996 erratum's Bartlett-kernel p-values: the AR(4), Hamilton's Markov switching model, the switching intercept model and the switching parameters model, the Wald tests between them, and the standardized LR statistics on grids of the parameters not identified under the null. Carrasco, Hu and Ploberger's optimal tests supTS and expTS, which need only the estimates under the null, with parametric bootstrap p-values: for a switch in the mean and for a switch in the mean and the variance, the critical values of the model without regressors, and the Markov switching AR(4) with switching mean and variance."
+license = "MIT"
+method = "Tests of one regime against two in Markov switching models of GNP"
+package = "MarkovRegimeTest"
+repository = "https://github.com/Trumpingtons/MarkovRegimeTest.jl"
+source = "MarkovRegimeTest.tex"
+title = "Tests of one regime against two in Markov switching models of GNP"
+topic = "Regime Switching"
+version = "0.1.0"

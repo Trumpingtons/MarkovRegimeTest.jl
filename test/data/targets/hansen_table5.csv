@@ -1,0 +1,11 @@
+Parameter,Estimate,Standard error
+mu,-0.447,0.305
+mud,1.560,0.245
+phi1,0.112,0.105
+phi2,0.065,0.081
+phi3,-0.126,0.080
+phi4,-0.136,0.091
+sigma,0.789,0.066
+p,0.912,0.032
+q,0.669,0.143
+Log-likelihood,-180.184,
