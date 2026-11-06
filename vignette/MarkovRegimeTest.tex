@@ -100,6 +100,24 @@ Hansen, switching intercept, Grid 2: LR* (p-value, $M=0$) & 1.95 (0.46; 0.49) & 
 \end{valuetable}
 Carrasco, Hu and Ploberger's statistics agree to the four decimals MSTest prints; Hansen's LR* by 0.0006, from different optimizers. The p-values, each from its own 1,000 draws, lie between Hansen's 1992 run (0.46) and his erratum (0.49). MSTest 0.1.9 has three errors in the switch in the mean and variance, which its author fixed in the development version (0.1.9.9012); its values for that test are left out. The development version draws its 100 directions from R's generator with the seed 2938438; reproduced in R and given to this package's code, they give supTS 1.924 and 14.33, expTS 1.006 and 312.44, beside ours 1.927 and 14.31, 1.071 and 241.35.
 
+\nmsection{How the two tests differ}
+None of Hansen's four models lets the variance switch: Hamilton's model switches the mean, the switching intercept model the intercept, and Models A and B the intercept and phi2, with independent regimes ($q=1-p$) in Model A. On the last 500 daily returns of the S\&P 500 (\fn{sp500} of PollisDatasets, $p=1$), Hansen's switching intercept test gives LR* 0.53 with p-values of 0.86 to 0.91, while Carrasco, Hu and Ploberger's test of a switch in the mean and the variance gives supTS 16.7 with a p-value of 0.00: the regimes of returns lie mostly in their variance. Even with the variance switching in both, four differences would remain.
+
+\nmsub{What each test estimates}
+Hansen fits the two-regime model at every point of a grid of the parameters the null leaves unidentified (the difference between the regimes, p and q), the other parameters estimated by maximum likelihood at each point; a variance difference would add one more dimension to the grid. Carrasco, Hu and Ploberger fit only the one-regime model: their statistic comes from its first and second derivatives, and the two-regime model is never estimated. On GNP, Hansen's Table X takes 23 seconds here; Carrasco, Hu and Ploberger's statistics, a fraction of a second.
+
+\nmsub{How exact the p-values are}
+Hansen bounds the distribution of LR* without deriving it (his Theorem 1), so his p-values are conservative: the test rejects less often than its nominal size, and part of its lack of power comes from the bound, not from the model. Carrasco, Hu and Ploberger derive the asymptotic distribution of their statistics, the bootstrap gives p-values of the right size, and the tests are asymptotically optimal against local alternatives, expTS maximizing a weighted average power.
+
+\nmsub{What a rejection says}
+Hansen's alternative is a two-regime Markov switching model. Carrasco, Hu and Ploberger's is wider: parameters that vary at random with serial dependence $\rho$ ($\rho=p+q-1$ for a two-regime chain), which also covers three regimes or parameters that drift continuously. Their rejection says that the parameters are not constant and that their variation is persistent, not that there are exactly two regimes.
+
+\nmsub{Grids and scale}
+Hansen's statistic depends on the grid of the difference between the regimes, which must suit the scale of the data: 0.1 to 2 fits GNP growth in per cent, not daily returns, hence the default here of 0.1 to 2 standard deviations of the series. Carrasco, Hu and Ploberger need a grid of $\rho$ only, and a direction $h$; the size of the switch does not enter, as the test looks at small departures from constant parameters. Regimes more persistent than $\rho=0.7$ lie outside the default grid, which lowers the power against them; \fn{bound = 0.98} uses the wider grid of their supplement's Table A-I.
+
+\nmsub{In practice}
+Carrasco, Hu and Ploberger's tests detect persistent parameter variation of any shape, at little cost and with the right size; Hansen's tests the two-regime model itself, at a high cost and conservatively. Carrasco, Hu and Ploberger's Tables I and II compare the powers of the two by simulation; they are not reproduced here.
+
 \nmsection{Still open}
 Hansen's Tables IV and VII (Monte Carlo runs of 50 trials), his CPU hours and LM stability test, and Carrasco, Hu and Ploberger's Tables I and II (sizes and powers) are not reproduced. Nothing found explains why the erratum's Table VI p-values sit above both Hansen's 1992 run and ours. Hansen's Table X, both models on all four grids, takes 23 seconds here; its Model B, Grid 4 alone took 15.9 CPU hours in the erratum.
 
